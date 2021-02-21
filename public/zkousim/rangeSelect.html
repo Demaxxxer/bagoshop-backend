@@ -1,0 +1,119 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inputy</title>
+  <script src="./slider.js" charset="utf-8"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+
+    .wrapper {
+      //position: relative;
+      margin: 60px 0 0 80px;
+      width: 400px;
+      height: 100px;
+      background: rgba(228, 255, 181,0.6);
+    }
+
+    .range {
+      position: relative;
+      background: rgba(151,222,151,0.8);
+      width: 300px;
+      height: 50px;
+    }
+
+    .range-rail {
+      position: absolute;
+      top: 50%;
+      left: 5px;
+      transform: translateY(-50%);
+      background: red;
+      width: calc(100% - 10px);
+      height: 10px;
+    }
+
+    .range-thumb-min, .range-thumb-max {
+      display: block;
+      position: absolute;
+      width: 30px;
+      height: 50px;
+      top: 0;
+      left: 0;
+    }
+
+    .range-thumb-min {
+
+    }
+
+    .range-thumb-max {
+
+    }
+
+  </style>
+  <body>
+    <div class="wrapper">
+
+      <div class="range" id="range" min="50" max="150">
+        <div class="range-rail">
+        </div>
+        <button class="range-thumb-min" id="range-min"></button>
+        <button class="range-thumb-max" id="range-max"></button>
+      </div>
+
+    </div>
+
+
+  </body>
+  <script>
+    $ = document.querySelector.bind(document);
+    $new = document.createElement.bind(document);
+
+
+    const slider = new Slider('#range','#range-min','#range-max')
+    console.log(slider);
+
+    function moveMin(e){
+      const range = $('#range').getBoundingClientRect()
+      const thumb = $('#range-min').getBoundingClientRect()
+      const max = range.width - thumb.width
+      const movement = (e.x - range.x) - (thumb.width/2)
+      let trans = Math.max(0,movement)
+      trans = Math.min(trans,max)
+      $('#range-min').style.transform = 'translateX(' + trans + 'px)';
+    }
+
+    function moveMax(e){
+      const range = $('#range').getBoundingClientRect()
+      const thumb = $('#range-max').getBoundingClientRect()
+      const max = range.width - thumb.width
+      const movement = (e.x - range.x) - (thumb.width/2)
+      let trans = Math.max(0,movement)
+      trans = Math.min(trans,max)
+      $('#range-max').style.transform = 'translateX(' + trans + 'px)';
+    }
+
+
+    $('#range-min').addEventListener('mousedown', e => {
+      window.addEventListener("mousemove", moveMin);
+      window.addEventListener("mouseup", e => {
+        window.removeEventListener("mousemove", moveMin)
+      });
+    })
+
+
+
+    $('#range-max').addEventListener('mousedown', e => {
+      window.addEventListener("mousemove", moveMax);
+      window.addEventListener("mouseup", e => {
+        window.removeEventListener("mousemove", moveMax)
+      });
+    })
+
+
+  </script>
+</html>
