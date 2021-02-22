@@ -11,9 +11,9 @@ router.get('/', (req, res) => {
 
 router.post('/user/create', userMiddlewares.create);
 
+router.post('/user/login', userMiddlewares.login);
 
-
-
+router.get('/user/loged', userMiddlewares.loged);
 
 
 

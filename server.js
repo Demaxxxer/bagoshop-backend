@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 
 const router = require('./router.js');
 
@@ -7,7 +8,8 @@ const app = express();
 
 
 app.use(express.static('public'));
-app.use(express.urlencoded({extended: true}))
+app.use(express.urlencoded({extended: true}));
+app.use(cookieParser());
 app.use('/', router);
 
 

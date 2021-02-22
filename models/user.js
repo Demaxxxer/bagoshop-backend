@@ -1,38 +1,41 @@
 const bcrypt = require('bcrypt');
-const Datastore = require('nedb');
+const { AsyncNedb } = require('nedb-async')
+const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 
-db = new Datastore({ filename: './data/users', autoload: true });
+const db = new AsyncNedb({ filename: './data/users.db', autoload: true });
+const jwtKey = 'tady se třeba bude generovat token'
 
 module.exports = class User {
 
   fields = {
-    'firstname': {
+    firstname: {
       min: 2,
       max: 12,
       patt: /^[A-Ža-ž0-9 ]+$/
     },
-    'surname': {
+    surname: {
       min: 2,
       max: 12,
       patt: /^[A-Ža-ž0-9 ]+$/
     },
-    'email': {
+    email: {
       min: 2,
       max: 50,
       patt: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/i,
-      pattMsg: 'does not match email form'
+      pattMsg: 'Zadaný email neodpovídá email formě'
     },
-    'pass': {
+    pass: {
       min: 8,
       max: 50,
+    },
+    passRepeat: {
+      //Pouze kontroluje shodu
       cb: body => {
         if(body.pass != body.passRepeat){
-          return 'passwords do not match'
+          return 'Hesla se neshodují'
         }
       }
-    },
-    'passRepeat': {
-      //Validated with match
     }
 
 
@@ -43,14 +46,13 @@ module.exports = class User {
   }
 
   setNewUserData(body){
-
     for (const field in this.fields) {
 
       if(typeof(body[field]) != 'string'){
         return {
           err: true,
           field: field,
-          type: 'undefined'
+          type: 'nezadáno'
         }
       }
 
@@ -59,7 +61,7 @@ module.exports = class User {
           return {
             err: true,
             field: field,
-            type: `few characters (${this.fields[field].min})`
+            type: `je moc krátké, minimálně (${this.fields[field].min}) znaků`
           }
         }
       }
@@ -69,14 +71,14 @@ module.exports = class User {
           return {
             err: true,
             field: field,
-            type: `too many characters (${this.fields[field].max})`
+            type: `je moc dlouhé, mamximálně (${this.fields[field].max}) znaků`
           }
         }
       }
 
       if(this.fields[field].patt){
         if(!this.fields[field].patt.test(body[field])){
-          let type = 'containing unsupported characters';
+          let type = 'Obsahuje nepovolené znaky';
           if(this.fields[field].pattMsg){
             type = this.fields[field].pattMsg
           }
@@ -109,31 +111,140 @@ module.exports = class User {
   }
 
   async saveNewUser(){
-
+    //Vytváří hash hesla
     this.passHash = await bcrypt.hash(this.pass, 10);
 
+    //Nový objekt záznamu
     const record = {
       fname: this.firstname,
       sname: this.surname,
       email: this.email,
-      pass: this.passHash
+      pass: this.passHash,
+      isAdmin: false,
+      tokens: []
     }
 
-    const find = new Promise((resolve, reject) => {
-      db.insert(record, function (err, newDoc) {
-        if (err) reject(err)
-        resolve(newDoc)
-      });
-    })
-
+    //Ukládá záznam
     try {
-      const newDoc = await find
-      console.log(newDoc)
+      await db.asyncInsert(record)
     } catch (err) {
-
+      return {
+        err: true,
+        type: err
+      }
     }
 
+    return {
+      err: false
+    }
 
   }
 
+  async findUser(query){
+    let user;
+    try {
+      user = await db.asyncFindOne(query)
+    } catch(err) {
+      return {
+        err: true,
+        type: err
+      }
+    }
+    this.record = user;
+    return {
+      err: false,
+      user: user
+    }
+
+  }
+
+  getReturnInfo(){
+    delete this.record.tokens;
+    delete this.record.pass;
+    delete this.record._id;
+    return this.record;
+  }
+
+  async createAccessToken(ip){
+    //Kontroluje jestli už neni moc přihlašovacích žetonů
+    if (this.record.tokens.length > 2){
+      this.record.tokens.splice(0,1)
+    }
+    //Vytváří nový žeton
+    const newToken = {
+      host: ip,
+      key: uuidv4(),
+      createdAt: new Date()
+    }
+    //Přidává žeton k účtu
+    this.record.tokens.push(newToken);
+    //Ukládá žetony
+    try {
+      await db.asyncUpdate({ _id: this.record._id }, { $set: { tokens: this.record.tokens } });
+    } catch(err) {
+      return {
+        err: true,
+        type: err
+      }
+    }
+    //Šifruje žeton pomocí JWT
+    const generated = jwt.sign({
+      userId: this.record._id,
+      userToken: newToken.key
+    }, jwtKey)
+
+    return {
+      err: false,
+      jwt: generated
+    }
+  }
+
+  async validUserToken(req){
+    const token = req.cookies.sessionToken
+    if(!token){
+      return {
+        err: true,
+        type: 'Nebyl zadán přihlašovací žeton'
+      }
+    }
+    let verifed;
+    try {
+      verifed = await jwt.verify(token,jwtKey);
+    } catch {
+      return {
+        err: true,
+        type: 'Přihlašovací žeton nemá správný formát'
+      }
+    }
+
+    const found = await this.findUser({ _id: verifed.userId });
+    if(found.err){
+      return {
+        err: true,
+        type: found.err
+      }
+    }
+
+    if(!this.record){
+      return {
+        err: true,
+        type: 'Uživatel nenalezen'
+      }
+    }
+
+    for(const i in this.record.tokens){
+      if(this.record.tokens[i].key == verifed.userToken){
+        return {
+          err: false,
+          user: this.record
+        }
+      }
+    }
+
+    return {
+      err: true,
+      type: 'Neplatný přihlašovací žeton'
+    }
+
+  }
 }
