@@ -4,6 +4,12 @@ const bcrypt = require('bcrypt');
 exports.create = async function(req,res){
   //Nová instance
   let user = new User();
+  //Kontrole jestli už uživatel neni náhodou přihlášený
+  await user.validUserToken(req)
+  if(user.activeToken){
+    res.status(403).json({err: 'Uživatel je už přihlášen'}).end();
+    return;
+  }
   //Validace polí
   const result = user.setNewUserData(req.body);
   if(result.err){
@@ -30,11 +36,17 @@ exports.create = async function(req,res){
   //Maže instanci aby se uvolnila paměť
   delete user;
 
-  res.status(201).end();
+  res.status(201).json({err: 'Uživatel úspěšně vytvořen nyní se můžete přihlásit'}).end();
 }
 
 exports.login = async function(req,res){
   let user = new User();
+  //Kontrole jestli už uživatel neni náhodou přihlášený
+  await user.validUserToken(req)
+  if(user.activeToken){
+    res.status(403).json({err: 'Uživatel je už přihlášen'}).end();
+    return;
+  }
   //Upravení použitých polí
   user.fields = {
     email: user.fields.email,
@@ -71,7 +83,9 @@ exports.login = async function(req,res){
   }
 
   res.cookie('sessionToken', token.jwt)
-  res.status(200).end();
+  const payload = user.getReturnInfo();
+  payload.err = 'Uživatel úspěšně přihlášen'
+  res.status(200).json(payload).end();
 }
 
 exports.loged = async function(req,res){
@@ -84,4 +98,82 @@ exports.loged = async function(req,res){
   }
 
   res.status(200).json(user.getReturnInfo()).end()
+}
+
+exports.logout = async function(req,res){
+  let user = new User();
+
+  //Kontrola jestli je uživatele vůbec přihlášeny
+  await user.validUserToken(req)
+  if(!user.record){
+    res.status(403).json({err: 'Uživatel neni přihlášeny'}).end();
+    return;
+  }
+
+  const result = await user.removeUserToken();
+  if(result.err){
+    res.status(500).json({err: result.type}).end();
+    return;
+  }
+
+  res.status(200).json({err: 'Uživatel odhlášen'}).end()
+}
+
+exports.get = async function(req,res){
+  let user = new User();
+
+  await user.validUserToken(req)
+  if( !(user.record && user.record.isAdmin) ){
+    res.status(403).json({err: 'Uživatele neni administrátor'}).end();
+    return;
+  }
+
+  const result = await user.findUsers({});
+  if(result.err){
+    res.status(500).json({err: result.type}).end();
+    return;
+  }
+
+  res.status(200).json(user.records).end();
+}
+
+exports.setAdmin = async function(req,res){
+  let user = new User();
+
+  await user.validUserToken(req)
+  if( !(user.record && user.record.isAdmin) ){
+    res.status(403).json({err: 'Uživatele neni administrátor'}).end();
+    return;
+  }
+
+  //Hledání uživatele se stejným emailem
+  const record = await user.findUser({_id: req.body.id});
+  if(record.err){
+    res.status(500).json({err: record.type}).end();
+    return;
+  }
+
+  if(!user.record){
+    res.status(404).json({err: 'Uživatel nenalezen'}).end();
+  }
+
+  const result = await user.setAdmin(req.body.value);
+  if(result.err){
+    res.status(500).json({err: result.type}).end();
+  }
+
+  res.status(200).json({err: 'Oprávnění uživatele upraveno'}).end();
+}
+
+exports.delete = async function(req,res){
+  let user = new User();
+
+  await user.validUserToken(req)
+  if( !(user.record && user.record.isAdmin) ){
+    res.status(403).json({err: 'Uživatele neni administrátor'}).end();
+    return;
+  }
+
+
+
 }

@@ -8,15 +8,19 @@ router.get('/', (req, res) => {
 })
 
 
+router.post('/api/user/create', userMiddlewares.create);
 
-router.post('/user/create', userMiddlewares.create);
+router.post('/api/user/login', userMiddlewares.login);
 
-router.post('/user/login', userMiddlewares.login);
+router.get('/api/user/loged', userMiddlewares.loged);
 
-router.get('/user/loged', userMiddlewares.loged);
+router.post('/api/user/logout', userMiddlewares.logout);
 
+router.get('/api/user/get', userMiddlewares.get);
 
+router.patch('/api/user/admin', userMiddlewares.setAdmin);
 
+router.delete('/api/user/delete', userMiddlewares.delete);
 
 /*
 router.post('/item/test/create', (req, res, next) => {

@@ -46,6 +46,7 @@ module.exports = class User {
   }
 
   setNewUserData(body){
+
     for (const field in this.fields) {
 
       if(typeof(body[field]) != 'string'){
@@ -234,6 +235,7 @@ module.exports = class User {
 
     for(const i in this.record.tokens){
       if(this.record.tokens[i].key == verifed.userToken){
+        this.activeToken = this.record.tokens[i];
         return {
           err: false,
           user: this.record
@@ -247,4 +249,59 @@ module.exports = class User {
     }
 
   }
+
+  async removeUserToken(){
+    //console.log(this.record.tokens);
+    const newArray = this.record.tokens.filter(token => token.key != this.activeToken.key)
+
+    try {
+      await db.asyncUpdate({ _id: this.record._id }, { $set: { tokens: newArray } });
+    } catch(err) {
+      return {
+        err: true,
+        type: err
+      }
+    }
+
+    return {
+      err: false,
+    }
+
+  }
+
+
+  async findUsers(query){
+    let users;
+    try {
+      users = await db.asyncFind(query,{fname: 1,sname: 1,email: 1, isAdmin: 1})
+    } catch(err) {
+      return {
+        err: true,
+        type: err
+      }
+    }
+    this.records = users;
+    return {
+      err: false,
+    }
+
+  }
+
+
+  async setAdmin(value){
+    try {
+      await db.asyncUpdate({ _id: this.record._id }, { $set: { isAdmin: Boolean(value) } });
+    } catch(err) {
+      return {
+        err: true,
+        type: err
+      }
+    }
+
+    return {
+      err: false,
+    }
+
+  }
+
 }
