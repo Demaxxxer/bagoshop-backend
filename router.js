@@ -3,6 +3,8 @@ const router = express.Router();
 
 const userMiddlewares = require('./controllers/user');
 
+const itemMiddlewares = require('./controllers/item');
+
 router.get('/', (req, res) => {
   res.sendFile('index.html');
 })
@@ -22,35 +24,14 @@ router.patch('/api/user/admin', userMiddlewares.setAdmin);
 
 router.delete('/api/user/delete', userMiddlewares.delete);
 
-/*
-router.post('/item/test/create', (req, res, next) => {
 
-  const Datastore = require('nedb')
+router.post('/api/item/create', itemMiddlewares.create);
 
-  db = new Datastore({ filename: './data/users', autoload: true });
 
-  const doc = {
-    name: req.body.name,
-    desc: req.body.dec,
-    releaseDate: req.body.releaseDate,
-    cost: req.body.cost,
-    stored: req.body.stored,
-    category: req.body.category,
-    images: [
-      '56dasd',
-      'sda564',
-      '53sdasd',
-      '1313ds'
-    ],
-    coverImage: 'lasd45'
-  };
 
-  db.insert(doc, function (err, newDoc) {
-    res.status(201).json({newId: newDoc._id}).end()
-  });
 
-})
-*/
+
+
 
 router.post('/upload', async (req, res, next) => {
 
