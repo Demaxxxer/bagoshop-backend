@@ -1,15 +1,18 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser')
-
+const path = require('path');
+const helmet = require("helmet");
 const router = require('./router.js');
+
 
 const port = 8080;
 const app = express();
 
 
-app.use(express.static('public'));
+//console.log(__dirname);
 
+app.use(express.static('uploads'));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
