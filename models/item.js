@@ -67,14 +67,24 @@ module.exports = class Item {
     }
   }
 
-  nukeImages(){
-    this.gallery.forEach( i => {
+  nukeImages(upload = true){
+    let gallery;
+    let thumbnail;
+    if(upload){
+      gallery = this.gallery;
+      thumbnail = this.thumbnail;
+    } else {
+      gallery = this.record.gallery;
+      thumbnail = this.record.thumbnail;
+    }
+
+    gallery.forEach( i => {
       fs.unlink(i, err => {
         if(err) throw err;
       });
     });
-    if(this.thumbnail){
-      fs.unlink(this.thumbnail, err => {
+    if(thumbnail){
+      fs.unlink(thumbnail, err => {
         if(err) throw err;
       });
     }
@@ -185,6 +195,7 @@ module.exports = class Item {
     this.inputData.gallery = this.gallery;
     this.inputData.thumbnail = this.thumbnail;
     this.inputData.release = Date.parse(this.inputData.release);
+    this.inputData.cost = parseInt(this.inputData.cost);
     this.inputData.sold = 0;
     let record;
 
@@ -227,12 +238,12 @@ module.exports = class Item {
         if(key == 'costMin' || key == 'costMax'){
           if(!isNaN(params[key])){
             if(key == 'costMin'){
-              query.cost = { $gte: params[key] };
+              query.cost = { $gte: parseInt(params[key]) };
             } else {
               if(query.cost){
-                query.cost.$lte = params[key];
+                query.cost.$lte = parseInt(params[key]);
               } else {
-                query.cost = { $lte: params[key] };
+                query.cost = { $lte: parseInt(params[key]) };
               }
             }
           }
@@ -295,8 +306,20 @@ module.exports = class Item {
       code: false,
     }
 
-
   }
 
+  async deleteItem(){
+    try {
+      await db.asyncRemove({ _id: this.record._id });
+    } catch(err) {
+      return {
+        code: 500
+      }
+    }
+    this.nukeImages(false)
+    return {
+      code: false,
+    }
+  }
 
 }

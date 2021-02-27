@@ -2,7 +2,8 @@ const formidable = require('formidable');
 const fs = require('fs');
 const path = require('path')
 
-const Item = require('../models/Item.js');
+const Item = require('../models/item');
+const User = require('../models/user');
 
 //Povolené typy souborů
 const fileTypes = [
@@ -20,6 +21,13 @@ formOptions = {
 }
 
 exports.create = async function(req,res){
+  let user = new User();
+  await user.validUserToken(req)
+  if( !(user.record && user.record.isAdmin) ){
+    res.status(403).end();
+    return;
+  }
+
   const form = new formidable(formOptions);
 
   //Ukončení když se objeví chyba při nahrávání
@@ -89,6 +97,22 @@ exports.create = async function(req,res){
   });
 }
 
+exports.get = async function(req,res){
+  let item = new Item();
+  const records = await item.findItem({_id: req.query.id});
+  if(records.code){
+    res.status(records.code).end();
+    return;
+  }
+
+  if(!item.record){
+    res.status(404).end();
+    return;
+  }
+
+  res.status(200).json(item.record).end();
+}
+
 /*
   * Je možné použít tyto parametry:
   * name - pomocí části jména
@@ -117,4 +141,34 @@ exports.getAll = async function(req,res){
 
   res.status(200).json(item.records).end();
 
+}
+
+exports.delete = async function(req,res){
+  let user = new User();
+  await user.validUserToken(req)
+  if( !(user.record && user.record.isAdmin) ){
+    res.status(403).end();
+    return;
+  }
+
+  let item = new Item();
+  //Hledání itemu pomocí id
+  const record = await item.findItem({_id: req.body.id});
+  if(record.code){
+    res.status(record.code).end();
+    return;
+  }
+  //Item nenalezen
+  if(!item.record){
+    res.status(404).end();
+    return;
+  }
+
+  const result = await item.deleteItem()
+  if(result.code){
+    res.status(result.code).end();
+    return;
+  }
+
+  res.status(200).end();
 }

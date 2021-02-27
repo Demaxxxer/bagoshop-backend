@@ -30,7 +30,9 @@ router.post('/api/item/create', itemMiddlewares.create);
 
 router.get('/api/items/get', itemMiddlewares.getAll);
 
+router.get('/api/item/get', itemMiddlewares.get);
 
+router.delete('/api/item/delete', itemMiddlewares.delete);
 
 
 

@@ -183,7 +183,7 @@ exports.delete = async function(req,res){
     return;
   }
 
-  const result = user.deleteUser()
+  const result = await user.deleteUser()
   if(result.code){
     res.status(result.code).end();
     return;

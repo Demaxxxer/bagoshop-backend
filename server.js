@@ -12,7 +12,7 @@ const app = express();
 
 //console.log(__dirname);
 
-app.use(express.static('uploads'));
+//app.use(express.static('uploads'));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -23,6 +23,7 @@ app.use(bodyParser.urlencoded({
 app.use(cookieParser());
 app.use('/', router);
 
+app.use('/api/uploads/', express.static('uploads'));
 
 /* Errory jsou zachyceny zde */
 /*
