@@ -54,6 +54,7 @@ exports.create = async function(req,res){
   //Callback je zavolán po uploadu všech souborů
   form.parse(req, async (err, fields, files) => {
     if(err){
+      res.status(500).json(result).end();
       return;
     }
 
@@ -93,6 +94,133 @@ exports.create = async function(req,res){
     }
 
     res.status(201).json(created).end();
+
+  });
+}
+
+exports.edit = async function(req,res){
+  let user = new User();
+  await user.validUserToken(req)
+  if( !(user.record && user.record.isAdmin) ){
+    res.status(403).end();
+    return;
+  }
+
+  //Kontrola jestli je item v datbázi
+  let item = new Item();
+  const exists = await item.findItem({_id: req.query.id})
+  if(exists.code){
+    res.status(code).end();
+    return;
+  }
+  if(!item.record){
+    res.status(404).end();
+    return;
+  }
+
+  const form = new formidable(formOptions);
+
+  //Ukončení když se objeví chyba při nahrávání
+  form.on('error', err => {
+    req.connection.destroy()
+  });
+
+  //Hlídá použití povolených souborů
+  form.on('fileBegin', (name, file) => {
+    if(fileTypes.indexOf(file.type) == -1)form.emit('error');
+  });
+
+
+  //Přidává obrázek do objektu
+  form.on('file', (formname, file) => {
+    if(!item.addImage(formname,file)){
+        fs.unlink(file.path, err => {
+          if(err) throw err;
+        });
+    }
+  });
+
+  //Callback je zavolán po uploadu všech souborů
+  form.parse(req, async (err, fields, files) => {
+    if(err){
+      item.nukeImages();
+      res.status(500).end();
+      return;
+    }
+
+    //Získává změně obrázky
+    let galleryOld;
+    try {
+      galleryOld = JSON.parse(fields.galleryOld)
+    } catch(err) {
+      item.nukeImages();
+      res.status(400).json({field:'galleryOld'}).end();
+      return;
+    }
+
+    //Kontroluje formulářové vstupy
+    const result = item.setItemInfo(fields);
+    if(result.err){
+      item.nukeImages();
+      res.status(400).json(result).end();
+      return;
+    }
+
+    //Když neni ani jeden obrázek v gallerii
+    if(galleryOld.length == 0 && item.gallery.length == 0){
+      item.nukeImages();
+      res.status(400).json({field:'galleryOrThumbnail'}).end();
+      return;
+    }
+
+    //Kontrola stejného jména u více produktů
+    if(item.inputData.name != item.record.name){
+      const same = await item.findItems({name: item.inputData.name})
+      if(same.code){
+        item.nukeImages();
+        res.status(same.code).end();
+        return;
+      }
+      if(item.records.length > 0){
+        item.nukeImages();
+        res.status(409).end();
+        return;
+      }
+    }
+
+
+    //Hledá rozdíly obrázků
+    let toDelete = [];
+    let toConcat = [];
+    item.record.gallery.forEach( img => {
+      if(galleryOld.indexOf(img) == -1){
+        toDelete.push(img);
+      } else {
+        toConcat.push(img);
+      }
+    });
+
+    //Když je poslán nový thubmnail tak je starý vymazán
+    if(item.thumbnail){
+      fs.unlink(item.record.thumbnail, err => {
+        if(err) throw err;
+      });
+    }
+    //Maže rozdílné obrázky
+    toDelete.forEach( img => {
+      fs.unlink(img, err => {
+        if(err) throw err;
+      });
+    });
+    item.gallery = item.gallery.concat(toConcat)
+
+    const saved = await item.saveItem();
+    if(saved.code){
+      res.status(saved.code).end();
+      return;
+    }
+
+    res.status(200).end();
 
   });
 }

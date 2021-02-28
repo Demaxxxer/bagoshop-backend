@@ -32,6 +32,8 @@ router.get('/api/items/get', itemMiddlewares.getAll);
 
 router.get('/api/item/get', itemMiddlewares.get);
 
+router.post('/api/item/update', itemMiddlewares.edit);
+
 router.delete('/api/item/delete', itemMiddlewares.delete);
 
 

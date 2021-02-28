@@ -47,6 +47,9 @@ const itemFields = {
   },
   dx: {
     patt: /^[A-Ža-ž0-9 /()@#.,:_-]+$/
+  },
+  size: {
+    number: true
   }
 }
 
@@ -211,6 +214,31 @@ module.exports = class Item {
     return {
       code: false,
       id: record._id
+    }
+  }
+
+  async saveItem(){
+    this.inputData.gallery = this.gallery;
+    if(this.thumbnail){
+      this.inputData.thumbnail = this.thumbnail;
+    } else {
+      this.inputData.thumbnail = this.record.thumbnail;
+    }
+    this.inputData.release = Date.parse(this.inputData.release);
+    this.inputData.cost = parseInt(this.inputData.cost);
+    let record;
+
+    //Ukládá záznam
+    try {
+      record = await db.asyncUpdate({_id:this.record._id},this.inputData);
+    } catch (err) {
+      return {
+        code: 500,
+      }
+    }
+
+    return {
+      code: false,
     }
   }
 
