@@ -6,98 +6,91 @@ const jwt = require('jsonwebtoken');
 const db = new AsyncNedb({ filename: './data/users.db', autoload: true });
 const jwtKey = 'tady se třeba bude generovat token'
 
+const inputFields = {
+  firstname: {
+    min: 2,
+    max: 12,
+    patt: /^[A-Ža-ž0-9 ]+$/
+  },
+  surname: {
+    min: 2,
+    max: 12,
+    patt: /^[A-Ža-ž0-9 ]+$/
+  },
+  email: {
+    min: 2,
+    max: 50,
+    patt: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/i,
+  },
+  pass: {
+    min: 8,
+    max: 50,
+  },
+  passRepeat: {
+    //Pouze kontroluje shodu
+    cb: body => {
+      return body.pass == body.passRepeat
+    }
+  }
+}
+
 module.exports = class User {
 
-  fields = {
-    firstname: {
-      min: 2,
-      max: 12,
-      patt: /^[A-Ža-ž0-9 ]+$/
-    },
-    surname: {
-      min: 2,
-      max: 12,
-      patt: /^[A-Ža-ž0-9 ]+$/
-    },
-    email: {
-      min: 2,
-      max: 50,
-      patt: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/i,
-      pattMsg: 'Zadaný email neodpovídá email formě'
-    },
-    pass: {
-      min: 8,
-      max: 50,
-    },
-    passRepeat: {
-      //Pouze kontroluje shodu
-      cb: body => {
-        if(body.pass != body.passRepeat){
-          return 'Hesla se neshodují'
-        }
-      }
-    }
-
-
+  getUserFields(){
+    return inputFields;
   }
 
-  constructor(){
-    //Asi tu ani nemusí být ale tak co už
-  }
+  setNewUserData(body,customFields = false){
+    let userFields = inputFields
+    if(customFields) userFields = customFields
 
-  setNewUserData(body){
 
-    for (const field in this.fields) {
+    for (const field in userFields) {
 
       if(typeof(body[field]) != 'string'){
         return {
           err: true,
           field: field,
-          type: 'nezadáno'
+          type: 'empty'
         }
       }
 
-      if(this.fields[field].min){
-        if(body[field].length < this.fields[field].min){
+      if(userFields[field].min){
+        if(body[field].length < userFields[field].min){
           return {
             err: true,
             field: field,
-            type: `je moc krátké, minimálně (${this.fields[field].min}) znaků`
+            type: 'short'
           }
         }
       }
 
-      if(this.fields[field].max){
-        if(body[field].length > this.fields[field].max){
+      if(userFields[field].max){
+        if(body[field].length > userFields[field].max){
           return {
             err: true,
             field: field,
-            type: `je moc dlouhé, mamximálně (${this.fields[field].max}) znaků`
+            type: 'long'
           }
         }
       }
 
-      if(this.fields[field].patt){
-        if(!this.fields[field].patt.test(body[field])){
-          let type = 'Obsahuje nepovolené znaky';
-          if(this.fields[field].pattMsg){
-            type = this.fields[field].pattMsg
-          }
+      if(userFields[field].patt){
+        if(!userFields[field].patt.test(body[field])){
           return {
             err: true,
             field: field,
-            type: type
+            type: 'wrongChars'
           }
         }
       }
 
-      if(this.fields[field].cb){
-        const err = this.fields[field].cb(body)
-        if(err){
+      if(userFields[field].cb){
+        if(!userFields[field].cb(body)){
           return {
             err: true,
             field: field,
-            type: err
+            type: 'passConfirm'
           }
         }
 
@@ -130,13 +123,12 @@ module.exports = class User {
       await db.asyncInsert(record)
     } catch (err) {
       return {
-        err: true,
-        type: err
+        code: 500,
       }
     }
 
     return {
-      err: false
+      code: false
     }
 
   }
@@ -147,13 +139,12 @@ module.exports = class User {
       user = await db.asyncFindOne(query)
     } catch(err) {
       return {
-        err: true,
-        type: err
+        code: 500,
       }
     }
     this.record = user;
     return {
-      err: false,
+      code: false,
       user: user
     }
 
@@ -184,8 +175,7 @@ module.exports = class User {
       await db.asyncUpdate({ _id: this.record._id }, { $set: { tokens: this.record.tokens } });
     } catch(err) {
       return {
-        err: true,
-        type: err
+        code: 500,
       }
     }
     //Šifruje žeton pomocí JWT
@@ -195,7 +185,7 @@ module.exports = class User {
     }, jwtKey)
 
     return {
-      err: false,
+      code: false,
       jwt: generated
     }
   }
@@ -204,8 +194,7 @@ module.exports = class User {
     const token = req.cookies.sessionToken
     if(!token){
       return {
-        err: true,
-        type: 'Nebyl zadán přihlašovací žeton'
+        code: 401
       }
     }
     let verifed;
@@ -213,23 +202,20 @@ module.exports = class User {
       verifed = await jwt.verify(token,jwtKey);
     } catch {
       return {
-        err: true,
-        type: 'Přihlašovací žeton nemá správný formát'
+        code: 401
       }
     }
 
     const found = await this.findUser({ _id: verifed.userId });
-    if(found.err){
+    if(found.code){
       return {
-        err: true,
-        type: found.err
+        code: found.code
       }
     }
 
     if(!this.record){
       return {
-        err: true,
-        type: 'Uživatel nenalezen'
+        code: 404
       }
     }
 
@@ -237,15 +223,14 @@ module.exports = class User {
       if(this.record.tokens[i].key == verifed.userToken){
         this.activeToken = this.record.tokens[i];
         return {
-          err: false,
+          code: false,
           user: this.record
         }
       }
     }
 
     return {
-      err: true,
-      type: 'Neplatný přihlašovací žeton'
+      code: 401
     }
 
   }
@@ -258,17 +243,36 @@ module.exports = class User {
       await db.asyncUpdate({ _id: this.record._id }, { $set: { tokens: newArray } });
     } catch(err) {
       return {
-        err: true,
-        type: err
+        code: 500
       }
     }
 
     return {
-      err: false,
+      code: false,
     }
 
   }
 
+
+  validUserQuery(params){
+    const keys = ['fname','sname','email'];
+    const patt = /^[A-Ža-ž0-9 ]+$/;
+    const queryString = {}
+
+    keys.forEach( i => {
+      if(typeof(params[i]) == 'string' && params[i].length > 0 && patt.test(params[i])){
+        queryString[i] = {$regex: new RegExp(params[i],'i')}
+      }
+    });
+
+    if(params.isAdmin){
+      queryString.isAdmin = (params.isAdmin == 'true')
+    }
+
+    return queryString;
+
+
+  }
 
   async findUsers(query){
     let users;
@@ -276,13 +280,12 @@ module.exports = class User {
       users = await db.asyncFind(query,{fname: 1,sname: 1,email: 1, isAdmin: 1})
     } catch(err) {
       return {
-        err: true,
-        type: err
+        code: 500
       }
     }
     this.records = users;
     return {
-      err: false,
+      code: false
     }
 
   }
@@ -293,13 +296,28 @@ module.exports = class User {
       await db.asyncUpdate({ _id: this.record._id }, { $set: { isAdmin: Boolean(value) } });
     } catch(err) {
       return {
-        err: true,
-        type: err
+        code: 500
       }
     }
 
     return {
-      err: false,
+      code: false,
+    }
+
+  }
+
+
+  async deleteUser(){
+    try {
+      await db.asyncRemove({ _id: this.record._id });
+    } catch(err) {
+      return {
+        code: 500
+      }
+    }
+
+    return {
+      code: false,
     }
 
   }

@@ -1,0 +1,35 @@
+{
+  "name": "bagoshop-backend",
+  "version": "1.0.0",
+  "description": "REST API for bagoshop SPA frontend. Ecommerce for selling video games.",
+  "main": "router.js",
+  "dependencies": {
+    "bcrypt": "^5.0.0",
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.5",
+    "express": "^4.17.1",
+    "formidable": "^1.2.2",
+    "helmet": "^4.4.1",
+    "jsonwebtoken": "^8.5.1",
+    "nedb": "^1.8.0",
+    "nedb-async": "^0.1.6",
+    "uninstall": "^0.0.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rostakillnutej/bagoshop-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rostakillnutej/bagoshop-backend/issues"
+  },
+  "homepage": "https://github.com/rostakillnutej/bagoshop-backend#readme"
+}
