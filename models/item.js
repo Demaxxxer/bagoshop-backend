@@ -299,6 +299,7 @@ module.exports = class Item {
       costUp: {cost: -1},
       costDown: {cost: 1}
     }
+
     if(typeof(params.sort) == 'string' && params.sort.length > 0 && sorts[params.sort]){
       return sorts[params.sort]
     }

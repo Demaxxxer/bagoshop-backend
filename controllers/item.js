@@ -271,6 +271,31 @@ exports.getAll = async function(req,res){
 
 }
 
+exports.getByCart = async function(req,res){
+  //Kontrola validity ideček
+  let ids;
+  try {
+    const cartData = JSON.parse(req.query.cart)
+    ids = Object.keys(cartData)
+    if(!Array.isArray(ids)){
+      res.status(400).end();
+      return;
+    }
+  } catch {
+    res.status(400).end();
+    return;
+  }
+
+  let item = new Item()
+  const records = await item.findItems({ _id: { $in: ids }},0);
+  if(records.code){
+    res.status(records.code).end();
+    return;
+  }
+  
+  res.status(200).json(item.records).end();
+}
+
 exports.delete = async function(req,res){
   let user = new User();
   await user.validUserToken(req)

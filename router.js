@@ -30,6 +30,8 @@ router.post('/api/item/create', itemMiddlewares.create);
 
 router.get('/api/items/get', itemMiddlewares.getAll);
 
+router.get('/api/items/fromcart', itemMiddlewares.getByCart);
+
 router.get('/api/item/get', itemMiddlewares.get);
 
 router.post('/api/item/update', itemMiddlewares.edit);
