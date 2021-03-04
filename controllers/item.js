@@ -4,6 +4,7 @@ const path = require('path')
 
 const Item = require('../models/item');
 const User = require('../models/user');
+const Order = require('../models/order');
 
 //Povolené typy souborů
 const fileTypes = [
@@ -273,26 +274,20 @@ exports.getAll = async function(req,res){
 
 exports.getByCart = async function(req,res){
   //Kontrola validity ideček
-  let ids;
-  try {
-    const cartData = JSON.parse(req.query.cart)
-    ids = Object.keys(cartData)
-    if(!Array.isArray(ids)){
-      res.status(400).end();
-      return;
-    }
-  } catch {
+  let order = new Order();
+  //Validace formátu košíku
+  if(!order.validCart(req.cookies)){
     res.status(400).end();
     return;
   }
 
   let item = new Item()
-  const records = await item.findItems({ _id: { $in: ids }},0);
+  const records = await item.findItems({ _id: { $in: order.ids }},0);
   if(records.code){
     res.status(records.code).end();
     return;
   }
-  
+
   res.status(200).json(item.records).end();
 }
 

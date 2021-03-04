@@ -11,9 +11,6 @@ const itemFields = {
     max: 50,
     patt: /^[A-Ža-ž0-9 /()@#.,:_-]+$/
   },
-  storage: {
-    number: true
-  },
   cost: {
     number: true
   },
@@ -244,7 +241,7 @@ module.exports = class Item {
 
   validItemQuery(params){
     //limit
-    const keys = ['name','cat','costMin','costMax','storage'];
+    const keys = ['name','cat','costMin','costMax'];
     const patt = /^[A-Ža-ž0-9 /()@#.,:_-]+$/;
     let query = {};
 
@@ -275,9 +272,6 @@ module.exports = class Item {
               }
             }
           }
-        }
-        if(key == 'storage'){
-          query.storage = params[key] == 'true';
         }
       }
     }
