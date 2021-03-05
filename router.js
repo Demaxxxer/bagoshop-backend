@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 const userMiddlewares = require('./controllers/user');
-
 const itemMiddlewares = require('./controllers/item');
+const orderMiddlewares = require('./controllers/order');
 
 /*
 router.get('/', (req, res) => {
@@ -30,6 +30,8 @@ router.post('/api/item/create', itemMiddlewares.create);
 
 router.get('/api/items/get', itemMiddlewares.getAll);
 
+router.get('/api/items/fromcart', itemMiddlewares.getByCart);
+
 router.get('/api/item/get', itemMiddlewares.get);
 
 router.post('/api/item/update', itemMiddlewares.edit);
@@ -37,9 +39,9 @@ router.post('/api/item/update', itemMiddlewares.edit);
 router.delete('/api/item/delete', itemMiddlewares.delete);
 
 
+router.post('/api/order/create', orderMiddlewares.create);
 
-
-
+router.get('/api/order/get', orderMiddlewares.get);
 
 
 
