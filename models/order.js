@@ -1,6 +1,7 @@
 const { AsyncNedb } = require('nedb-async')
 
 const db = new AsyncNedb({ filename: './data/orders.db', autoload: true });
+const itemDb = new AsyncNedb({ filename: './data/items.db', autoload: true });
 
 module.exports = class Order {
 
@@ -32,6 +33,16 @@ module.exports = class Order {
     return false;
   }
 
+  async increaseSold(item,count){
+    try {
+      const result = await itemDb.asyncUpdate({_id:item._id},{$set: {sold: item.sold + count}});
+    } catch (err) {
+      console.log(err);
+      return {
+        code: 500,
+      }
+    }
+  }
 
   async saveOrder(order){
     let record;
