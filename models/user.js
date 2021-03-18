@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
 const db = new AsyncNedb({ filename: './data/users.db', autoload: true });
+
 const jwtKey = 'tady se třeba bude generovat token'
 
 const inputFields = {

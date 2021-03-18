@@ -1,4 +1,5 @@
 const { AsyncNedb } = require('nedb-async')
+//const { itemDb } = require('./item.js')
 
 const db = new AsyncNedb({ filename: './data/orders.db', autoload: true });
 const itemDb = new AsyncNedb({ filename: './data/items.db', autoload: true });

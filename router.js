@@ -5,11 +5,6 @@ const userMiddlewares = require('./controllers/user');
 const itemMiddlewares = require('./controllers/item');
 const orderMiddlewares = require('./controllers/order');
 
-/*
-router.get('/', (req, res) => {
-  res.sendFile('index.html');
-})
-*/
 
 router.post('/api/user/create', userMiddlewares.create);
 
