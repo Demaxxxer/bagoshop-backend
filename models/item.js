@@ -5,8 +5,6 @@ const { AsyncNedb } = require('nedb-async')
 
 const db = new AsyncNedb({ filename: './data/items.db', autoload: true });
 
-//exports.itemDb = db;
-
 const itemFields = {
   name: {
     min: 2,
@@ -54,6 +52,7 @@ const itemFields = {
 
 
 module.exports = class Item {
+  itemDb = db
   gallery = []
   thumbnail = false
 

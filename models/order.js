@@ -1,8 +1,11 @@
 const { AsyncNedb } = require('nedb-async')
-//const { itemDb } = require('./item.js')
+const Item = require('./item.js')
 
 const db = new AsyncNedb({ filename: './data/orders.db', autoload: true });
-const itemDb = new AsyncNedb({ filename: './data/items.db', autoload: true });
+const item = new Item();
+const itemDb = item.itemDb;
+//const itemDb = new AsyncNedb({ filename: './data/items.db', autoload: true });
+
 
 module.exports = class Order {
 
