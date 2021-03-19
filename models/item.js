@@ -52,6 +52,7 @@ const itemFields = {
 
 
 module.exports = class Item {
+  itemDb = db
   gallery = []
   thumbnail = false
 

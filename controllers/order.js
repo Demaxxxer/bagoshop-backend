@@ -47,6 +47,9 @@ exports.create = async function(req,res){
   let cost = 0;
   for (const i in item.records){
     const count = Math.abs(order.cartData[item.records[i]._id])
+
+    await order.increaseSold(item.records[i],count);
+
     content.push({
       name: item.records[i].name,
       cost: item.records[i].cost * count,
